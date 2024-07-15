@@ -19,9 +19,10 @@ globalRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
 /**
  * Create and return common metrics
  * @param registers
+ * @param withProbeSuccess
  * @returns {{sipStatusGauge: Gauge<string>, uptimeGauge: Gauge<string>}}
  */
-const  createMetrics = (registers) => {
+const  createMetrics = (registers, withProbeSuccess = false) => {
     const sipStatusGauge = new Gauge({
         name: `${SERVICE_PREFIX}_sip_status`,
         help: 'SIP status of the intercom',
@@ -36,21 +37,26 @@ const  createMetrics = (registers) => {
         registers: registers,
     });
 
-    const probeSuccess = new Gauge({
-        name: `probe_success`,
-        // name: `${SERVICE_PREFIX}_probe_success`,
-        help: 'Displays whether or not the probe was a success',
-        registers: registers,
-    })
+    const metrics = { sipStatusGauge, uptimeGauge }
 
-    return { sipStatusGauge, uptimeGauge, probeSuccess };
+    if (withProbeSuccess) {
+        const probeSuccess = new Gauge({
+            name: `probe_success`,
+            // name: `${SERVICE_PREFIX}_probe_success`,
+            help: 'Displays whether or not the probe was a success',
+            registers: registers,
+        })
+        metrics.probeSuccess = probeSuccess
+    }
+
+    return metrics;
 }
 
 // Create global metrics
 const {
     sipStatusGauge: globalSipStatusGauge,
     uptimeGauge: globalUptimeGauge,
-    probeSuccess: globalProbeSuccess
+    // probeSuccess: globalProbeSuccess
 } = createMetrics([globalRegistry]);
 
 app.get('/metrics', async (req, res) => {
@@ -74,16 +80,13 @@ app.get('/probe', async (req, res) => {
             sipStatusGauge: requestSipStatusGauge,
             uptimeGauge: requestUptimeGauge,
             probeSuccess: requestProbeSuccessGauge
-        } = createMetrics([requestRegistry]);
+        } = createMetrics([requestRegistry], true);
 
         // Simulate fetching SIP status and uptime, replace with actual logic
         // const sipStatus = getSipStatus({url, username, password, model});
         // const uptime = getUptimeSeconds({url, username, password, model});
 
         const { sipStatus, uptimeSeconds }  = await getMetrics({url, username, password, model});
-
-        console.log("PROBE res")
-        console.log({ sipStatus, uptimeSeconds })
 
         // Update metrics in both the request-specific registry and the global registry
         requestSipStatusGauge.set({ url }, sipStatus);
@@ -92,7 +95,7 @@ app.get('/probe', async (req, res) => {
         //
         globalSipStatusGauge.set({ url }, sipStatus);
         globalUptimeGauge.set({ url }, uptimeSeconds);
-        globalProbeSuccess.set(1)
+        // globalProbeSuccess.set(1)
 
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());
@@ -113,7 +116,6 @@ const getUptimeSeconds = ({url, username, password, model}) => {
     return Math.floor(Date.now() / 1000); // Simulated value, replace with actual logic
 };
 
-
 const getMetrics = async ({url, username, password, model}) => {
 
     /**
@@ -126,9 +128,7 @@ const getMetrics = async ({url, username, password, model}) => {
      */
     switch (model){
         case BEWARD_DKS:
-            const res = await getBewardMetrics(url, username, password)
-            console.log(res)
-            return res
+            return await getBewardMetrics(url, username, password)
         case QTECH:
             return await getQtechMetrics(url, username, password)
         default:
@@ -181,12 +181,9 @@ const getBewardMetrics = async (url, username = 'admin', password) => {
     const sipStatusData = await instance.get(PATH_SIP_STATUS).then(({data}) => data)
     const sysInfoData = await instance.get(PATH_SYSINFO).then(({data}) => data)
 
-    // console.log({sipStatusData, sysInfoData})
-
     const sipStatus = parseSipStatus(sipStatusData)
     const uptimeSeconds = parseUptimeMatch(sysInfoData)
 
-    console.table({ url, sipStatus, uptimeSeconds})
     return { sipStatus, uptimeSeconds }
 }
 
