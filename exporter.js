@@ -7,7 +7,9 @@ const PORT = process.env.PORT;
 const SERVICE_PREFIX = process.env.SERVICE_PREFIX
 // Intercom models
 const BEWARD_DKS = 'BEWARD DKS'
+const BEWARD_DS = 'BEWARD DS'
 const QTECH = 'QTECH'
+const AKUVOX = 'AKUVOX'
 
 const app = express();
 
@@ -127,6 +129,7 @@ const getMetrics = async ({url, username, password, model}) => {
      *
      */
     switch (model){
+        case BEWARD_DS:
         case BEWARD_DKS:
             return await getBewardMetrics(url, username, password)
         case QTECH:
@@ -142,6 +145,7 @@ const getBewardMetrics = async (url, username = 'admin', password) => {
     const baseURL = url + '/cgi-bin'
     const PATH_SIP_STATUS = '/sip_cgi?action=regstatus&AccountReg'
     const PATH_SYSINFO = '/systeminfo_cgi?action=get'
+
     const instance = axios.create({
         baseURL: baseURL,
         timeout: 1000,
