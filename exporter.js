@@ -24,7 +24,7 @@ globalRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
  * @param withProbeSuccess
  * @returns {{sipStatusGauge: Gauge<string>, uptimeGauge: Gauge<string>}}
  */
-const  createMetrics = (registers, withProbeSuccess = false) => {
+const  createMetrics = (registers, isGlobal = false) => {
     const sipStatusGauge = new Gauge({
         name: `${SERVICE_PREFIX}_sip_status`,
         help: 'SIP status of the intercom',
@@ -41,7 +41,7 @@ const  createMetrics = (registers, withProbeSuccess = false) => {
 
     const metrics = { sipStatusGauge, uptimeGauge }
 
-    if (withProbeSuccess) {
+    if (!isGlobal) {
         const probeSuccess = new Gauge({
             name: `probe_success`,
             // name: `${SERVICE_PREFIX}_probe_success`,
@@ -58,8 +58,7 @@ const  createMetrics = (registers, withProbeSuccess = false) => {
 const {
     sipStatusGauge: globalSipStatusGauge,
     uptimeGauge: globalUptimeGauge,
-    // probeSuccess: globalProbeSuccess
-} = createMetrics([globalRegistry]);
+} = createMetrics([globalRegistry], true);
 
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', globalRegistry.contentType);
@@ -82,7 +81,7 @@ app.get('/probe', async (req, res) => {
             sipStatusGauge: requestSipStatusGauge,
             uptimeGauge: requestUptimeGauge,
             probeSuccess: requestProbeSuccessGauge
-        } = createMetrics([requestRegistry], true);
+        } = createMetrics([requestRegistry]);
 
         // Simulate fetching SIP status and uptime, replace with actual logic
         // const sipStatus = getSipStatus({url, username, password, model});
@@ -142,9 +141,9 @@ const getMetrics = async ({url, username, password, model}) => {
 const getBewardMetrics = async (url, username = 'admin', password) => {
     console.log("RUN getBewardMetrics")
     // implement get Beward metrics
-    const baseURL = url + '/cgi-bin'
-    const PATH_SIP_STATUS = '/sip_cgi?action=regstatus&AccountReg'
-    const PATH_SYSINFO = '/systeminfo_cgi?action=get'
+    const baseURL = url + '/cgi-bin';
+    const PATH_SIP_STATUS = '/sip_cgi?action=regstatus&AccountReg';
+    const PATH_SYSINFO = '/systeminfo_cgi?action=get';
 
     const instance = axios.create({
         baseURL: baseURL,
@@ -182,13 +181,15 @@ const getBewardMetrics = async (url, username = 'admin', password) => {
         return 0;
     }
 
-    const sipStatusData = await instance.get(PATH_SIP_STATUS).then(({data}) => data)
-    const sysInfoData = await instance.get(PATH_SYSINFO).then(({data}) => data)
+    const [sipStatusData, sysInfoData] = await Promise.all([
+        instance.get(PATH_SIP_STATUS).then(({data}) => data),
+        instance.get(PATH_SYSINFO).then(({data}) => data)
+    ]);
 
-    const sipStatus = parseSipStatus(sipStatusData)
-    const uptimeSeconds = parseUptimeMatch(sysInfoData)
+    const sipStatus = parseSipStatus(sipStatusData);
+    const uptimeSeconds = parseUptimeMatch(sysInfoData);
 
-    return { sipStatus, uptimeSeconds }
+    return { sipStatus, uptimeSeconds };
 }
 
 const getQtechMetrics = async (url, username, password) => {
