@@ -1,5 +1,5 @@
 import express from 'express';
-import { Registry, Gauge, collectDefaultMetrics, Counter } from 'prom-client';
+import { Gauge, Registry } from 'prom-client';
 import 'dotenv/config'
 import axios from "axios";
 
@@ -16,18 +16,19 @@ const app = express();
 // Create a global registry for all metrics
 const globalRegistry = new Registry();
 globalRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
+// Host system metrics, optional
 // collectDefaultMetrics({ register: globalRegistry });
 
 /**
  * Create and return common metrics
  * @param registers
- * @param withProbeSuccess
+ * @param isGlobal
  * @returns {{sipStatusGauge: Gauge<string>, uptimeGauge: Gauge<string>}}
  */
 const  createMetrics = (registers, isGlobal = false) => {
     const sipStatusGauge = new Gauge({
         name: `${SERVICE_PREFIX}_sip_status`,
-        help: 'SIP status of the intercom',
+        help: 'SIP status of the intercom. 0 - offline, 1 - online',
         labelNames: ['url'],
         registers: registers,
     });
@@ -42,13 +43,12 @@ const  createMetrics = (registers, isGlobal = false) => {
     const metrics = { sipStatusGauge, uptimeGauge }
 
     if (!isGlobal) {
-        const probeSuccess = new Gauge({
+        metrics.probeSuccess = new Gauge({
             name: `probe_success`,
             // name: `${SERVICE_PREFIX}_probe_success`,
             help: 'Displays whether or not the probe was a success',
             registers: registers,
         })
-        metrics.probeSuccess = probeSuccess
     }
 
     return metrics;
@@ -71,39 +71,41 @@ app.get('/probe', async (req, res) => {
     if (!url || !username || !password || !model) {
         return res.status(400).send('Missing required query parameters: url, username, password, model');
     }
+    console.log("Probe req > " + url);
+
+
+    // Create a separate registry for this request
+    const requestRegistry = new Registry();
+    requestRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
+    // Create request-specific metrics
+    const {
+        sipStatusGauge: requestSipStatusGauge,
+        uptimeGauge: requestUptimeGauge,
+        probeSuccess: requestProbeSuccessGauge
+    } = createMetrics([requestRegistry]);
 
     try {
-        // Create a separate registry for this request
-        const requestRegistry = new Registry();
-        requestRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
-        // Create request-specific metrics
-        const {
-            sipStatusGauge: requestSipStatusGauge,
-            uptimeGauge: requestUptimeGauge,
-            probeSuccess: requestProbeSuccessGauge
-        } = createMetrics([requestRegistry]);
-
-        // Simulate fetching SIP status and uptime, replace with actual logic
-        // const sipStatus = getSipStatus({url, username, password, model});
-        // const uptime = getUptimeSeconds({url, username, password, model});
-
         const { sipStatus, uptimeSeconds }  = await getMetrics({url, username, password, model});
 
         // Update metrics in both the request-specific registry and the global registry
         requestSipStatusGauge.set({ url }, sipStatus);
         requestUptimeGauge.set({ url }, uptimeSeconds);
         requestProbeSuccessGauge.set(1)
-        //
+
         globalSipStatusGauge.set({ url }, sipStatus);
         globalUptimeGauge.set({ url }, uptimeSeconds);
-        // globalProbeSuccess.set(1)
 
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());
         requestRegistry.clear();
     } catch (error) {
         console.error('Failed to update metrics:', error.message);
-        res.status(500).send('Failed to update metrics');
+
+        requestProbeSuccessGauge.set(0)
+
+        res.set('Content-Type', requestRegistry.contentType);
+        res.send(await requestRegistry.metrics());
+        requestRegistry.clear();
     }
 });
 
@@ -139,14 +141,14 @@ const getMetrics = async ({url, username, password, model}) => {
 }
 
 const getBewardMetrics = async (url, username = 'admin', password) => {
-    console.log("RUN getBewardMetrics")
+    console.log("RUN getBewardMetrics > " + url );
     // implement get Beward metrics
-    const baseURL = url + '/cgi-bin';
+    const BASE_URL = url + '/cgi-bin';
     const PATH_SIP_STATUS = '/sip_cgi?action=regstatus&AccountReg';
     const PATH_SYSINFO = '/systeminfo_cgi?action=get';
 
     const instance = axios.create({
-        baseURL: baseURL,
+        baseURL: BASE_URL,
         timeout: 1000,
         auth: {
             username: username,
@@ -181,15 +183,21 @@ const getBewardMetrics = async (url, username = 'admin', password) => {
         return 0;
     }
 
-    const [sipStatusData, sysInfoData] = await Promise.all([
-        instance.get(PATH_SIP_STATUS).then(({data}) => data),
-        instance.get(PATH_SYSINFO).then(({data}) => data)
-    ]);
+    try {
+        const [sipStatusData, sysInfoData] = await Promise.all([
+            instance.get(PATH_SIP_STATUS).then(({data}) => data),
+            instance.get(PATH_SYSINFO).then(({data}) => data)
+        ]);
 
-    const sipStatus = parseSipStatus(sipStatusData);
-    const uptimeSeconds = parseUptimeMatch(sysInfoData);
+        const sipStatus = parseSipStatus(sipStatusData);
+        const uptimeSeconds = parseUptimeMatch(sysInfoData);
 
-    return { sipStatus, uptimeSeconds };
+        return { sipStatus, uptimeSeconds };
+    } catch (err){
+        console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
+        throw new Error('Failed to fetch metrics from intercom');
+    }
+
 }
 
 const getQtechMetrics = async (url, username, password) => {
