@@ -197,11 +197,34 @@ const getBewardMetrics = async (url, username = 'admin', password) => {
         console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
         throw new Error('Failed to fetch metrics from intercom');
     }
-
 }
 
 const getQtechMetrics = async (url, username, password) => {
     // implement get Qtech metrics
+}
+
+const getAkuvoxMetrics = async (url, username, password) => {
+    const BASE_URL = url + '/api';
+    const statusPayload = {
+        target: "system",
+        action: "status"
+    };
+    const infoPayload = {
+        target: "system",
+        action: "info"
+    };
+
+    const instance = axios.create({
+        baseURL: BASE_URL,
+        timeout: 1000,
+        auth: {
+            username: username,
+            password: password
+        }
+    });
+
+    const infoData = instance.post("",statusPayload)
+    
 }
 
 // Start the server
