@@ -2,6 +2,7 @@ import express from 'express';
 import { Gauge, Registry } from 'prom-client';
 import 'dotenv/config'
 import axios from "axios";
+import DigestFetch from "digest-fetch";
 
 const PORT = process.env.PORT;
 const SERVICE_PREFIX = process.env.SERVICE_PREFIX
@@ -132,9 +133,11 @@ const getMetrics = async ({url, username, password, model}) => {
     switch (model){
         case BEWARD_DS:
         case BEWARD_DKS:
-            return await getBewardMetrics(url, username, password)
+            return await getBewardMetrics(url, username, password);
         case QTECH:
-            return await getQtechMetrics(url, username, password)
+            return await getQtechMetrics(url, username, password);
+        case AKUVOX:
+            return await getAkuvoxMetrics(url, username, password);
         default:
             throw new Error(`Unsupported model: ${model}`);
     }
@@ -204,27 +207,62 @@ const getQtechMetrics = async (url, username, password) => {
 }
 
 const getAkuvoxMetrics = async (url, username, password) => {
-    const BASE_URL = url + '/api';
+    console.log("RUN getAkuvoxMetrics > " + url );
+    const digestClient = new DigestFetch(username, password);
+    const BASE_URL = url + '/api'
     const statusPayload = {
-        target: "system",
-        action: "status"
+        target: 'system',
+        action: 'status'
     };
     const infoPayload = {
-        target: "system",
-        action: "info"
+        target: 'system',
+        action: 'info'
     };
 
-    const instance = axios.create({
-        baseURL: BASE_URL,
-        timeout: 1000,
-        auth: {
-            username: username,
-            password: password
+    class DigestClient {
+        constructor(client, baseUrl) {
+            this.client = client;
+            this.baseUrl = baseUrl;
         }
-    });
 
-    const infoData = instance.post("",statusPayload)
-    
+        async post(endpoint, payload) {
+            const response = await this.client.fetch(this.baseUrl + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.json();
+        }
+    }
+    const instance = new DigestClient(digestClient, BASE_URL);
+
+    try {
+        const [statusResponse, infoResponse] = await Promise.all([
+            instance.post('', statusPayload).then(({data}) => data),
+            instance.post('', infoPayload).then(({data}) => data)
+        ]);
+
+        const parseUptime = (data) => {
+            return data.UpTime ?? 0;
+        };
+
+        const parseSipStatus = (data) => {
+            return data.Account1.Status === "2" ? 1 : 0;
+        }
+
+        const sipStatus = parseSipStatus(infoResponse)
+        const uptimeSeconds = parseUptime(statusResponse)
+
+        return { sipStatus, uptimeSeconds}
+    } catch (err) {
+        console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
+        throw new Error('Failed to fetch metrics from intercom');
+    }
 }
 
 // Start the server
