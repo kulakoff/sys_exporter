@@ -7,10 +7,10 @@ import DigestFetch from "digest-fetch";
  * @param password
  * @returns {Promise<{sipStatus: (number), uptimeSeconds: *}>}
  */
- export const getAkuvoxMetrics = async (url, username, password) => {
-    console.log("RUN getAkuvoxMetrics > " + url );
+export const getAkuvoxMetrics = async (url, username, password) => {
+    console.log("RUN getAkuvoxMetrics > " + url);
     const digestClient = new DigestFetch(username, password);
-    const BASE_URL = url + '/api'
+    const BASE_URL = url + '/api';
     const statusPayload = {
         target: 'system',
         action: 'status'
@@ -26,20 +26,33 @@ import DigestFetch from "digest-fetch";
             this.baseUrl = baseUrl;
         }
 
-        async post(endpoint, payload) {
-            const response = await this.client.fetch(this.baseUrl + endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+        async post(endpoint, payload, timeout = 5000) {
+            return new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                    reject(new Error('Запрос превысил время ожидания'));
+                }, timeout);
+
+                this.client.fetch(this.baseUrl + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(response => {
+                        clearTimeout(timer);
+                        if (!response.ok) {
+                            reject(new Error(`HTTP error! status: ${response.status}`));
+                        } else {
+                            resolve(response.json());
+                        }
+                    })
+                    .catch(err => {
+                        clearTimeout(timer);
+                        reject(err);
+                    });
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return response.json();
         }
     }
+
     const instance = new DigestClient(digestClient, BASE_URL);
 
     try {
@@ -54,14 +67,14 @@ import DigestFetch from "digest-fetch";
 
         const parseSipStatus = (data) => {
             return data.Account1.Status === "2" ? 1 : 0;
-        }
+        };
 
-        const sipStatus = parseSipStatus(infoResponse)
-        const uptimeSeconds = parseUptime(statusResponse)
+        const sipStatus = parseSipStatus(infoResponse);
+        const uptimeSeconds = parseUptime(statusResponse);
 
-        return { sipStatus, uptimeSeconds}
+        return { sipStatus, uptimeSeconds };
     } catch (err) {
-        console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
+        console.error(`Error fetching metrics from device ${url}: ${err.message}`);
         throw new Error('Failed to fetch metrics from intercom');
     }
-}
+};
