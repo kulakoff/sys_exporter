@@ -2,7 +2,7 @@ import 'dotenv/config'
 import express from 'express';
 import { Gauge, Registry } from 'prom-client';
 import basicAuth from 'express-basic-auth';
-import { getBewardMetrics, getQtechMetrics, getAkuvoxMetrics } from './metrics'
+import { getBewardMetrics, getQtechMetrics, getAkuvoxMetrics } from './metrics/index.js'
 import {
     APP_NAME,
     PORT,
@@ -52,6 +52,7 @@ const  createMetrics = (registers, isGlobal = false) => {
             name: `probe_success`,
             // name: `${SERVICE_PREFIX}_probe_success`,
             help: 'Displays whether or not the probe was a success',
+            labelNames: ['url'],
             registers: registers,
         })
     }
@@ -104,7 +105,7 @@ app.get('/probe', async (req, res) => {
         // Update metrics per request-specific
         requestSipStatusGauge.set({ url }, sipStatus);
         requestUptimeGauge.set({ url }, uptimeSeconds);
-        requestProbeSuccessGauge.set(1);
+        requestProbeSuccessGauge.set({ url },1);
 
         // update  global registry
         globalSipStatusGauge.set({ url }, sipStatus);
@@ -116,7 +117,7 @@ app.get('/probe', async (req, res) => {
         requestRegistry.clear();
     } catch (error) {
         console.error('Failed to update metrics:', error.message);
-        requestProbeSuccessGauge.set(0);
+        requestProbeSuccessGauge.set({ url }, 0);
 
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());
