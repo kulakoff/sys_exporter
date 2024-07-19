@@ -29,7 +29,7 @@ export const getAkuvoxMetrics = async (url, username, password) => {
         async post(endpoint, payload, timeout = 5000) {
             return new Promise((resolve, reject) => {
                 const timer = setTimeout(() => {
-                    reject(new Error(`Запрос превысил время ожидания ${timeout}`));
+                    reject(new Error(`Request timeout: ${timeout} ms`));
                 }, timeout);
 
                 this.client.fetch(this.baseUrl + endpoint, {
