@@ -1,25 +1,19 @@
+import 'dotenv/config'
 import express from 'express';
 import { Gauge, Registry } from 'prom-client';
-import 'dotenv/config'
-import axios from "axios";
-import DigestFetch from "digest-fetch";
 import basicAuth from 'express-basic-auth';
-
 import { getBewardMetrics, getQtechMetrics, getAkuvoxMetrics } from './metrics'
-
-
-const PORT = process.env.PORT;
-const SERVICE_PREFIX = process.env.SERVICE_PREFIX || 'sys_intercom';
-
-const AUTH_ENABLED = process.env.AUTH_ENABLED === 'false';
-const AUTH_USER = process.env.AUTH_USER;
-const AUTH_PASS = process.env.AUTH_PASS;
-
-// Intercom models
-const BEWARD_DKS = 'BEWARD DKS'
-const BEWARD_DS = 'BEWARD DS'
-const QTECH = 'QTECH'
-const AKUVOX = 'AKUVOX'
+import {
+    PORT,
+    SERVICE_PREFIX,
+    AUTH_ENABLED,
+    AUTH_USER,
+    AUTH_PASS,
+    BEWARD_DKS,
+    BEWARD_DS,
+    QTECH,
+    AKUVOX
+} from './constants.js'
 
 const app = express();
 
