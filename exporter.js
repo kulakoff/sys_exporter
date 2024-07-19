@@ -5,7 +5,8 @@ import axios from "axios";
 import DigestFetch from "digest-fetch";
 
 const PORT = process.env.PORT;
-const SERVICE_PREFIX = process.env.SERVICE_PREFIX
+const SERVICE_PREFIX = process.env.SERVICE_PREFIX || 'sys_intercom';
+
 // Intercom models
 const BEWARD_DKS = 'BEWARD DKS'
 const BEWARD_DS = 'BEWARD DS'
@@ -72,12 +73,13 @@ app.get('/probe', async (req, res) => {
     if (!url || !username || !password || !model) {
         return res.status(400).send('Missing required query parameters: url, username, password, model');
     }
-    console.log("Probe req > " + url);
 
+    console.log("Probe req > " + url);
 
     // Create a separate registry for this request
     const requestRegistry = new Registry();
     requestRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
+
     // Create request-specific metrics
     const {
         sipStatusGauge: requestSipStatusGauge,
@@ -91,7 +93,7 @@ app.get('/probe', async (req, res) => {
         // Update metrics in both the request-specific registry and the global registry
         requestSipStatusGauge.set({ url }, sipStatus);
         requestUptimeGauge.set({ url }, uptimeSeconds);
-        requestProbeSuccessGauge.set(1)
+        requestProbeSuccessGauge.set(1);
 
         globalSipStatusGauge.set({ url }, sipStatus);
         globalUptimeGauge.set({ url }, uptimeSeconds);
@@ -101,24 +103,14 @@ app.get('/probe', async (req, res) => {
         requestRegistry.clear();
     } catch (error) {
         console.error('Failed to update metrics:', error.message);
-
-        requestProbeSuccessGauge.set(0)
+        requestProbeSuccessGauge.set(0);
 
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());
+
         requestRegistry.clear();
     }
 });
-
-// Simulated function to get SIP status
-const getSipStatus = ({url, username, password, model}) => {
-    return Math.floor(Math.random() * 2); // Simulated value, replace with actual logic
-};
-
-// Simulated function to get uptime in seconds
-const getUptimeSeconds = ({url, username, password, model}) => {
-    return Math.floor(Date.now() / 1000); // Simulated value, replace with actual logic
-};
 
 const getMetrics = async ({url, username, password, model}) => {
 
@@ -203,9 +195,79 @@ const getBewardMetrics = async (url, username = 'admin', password) => {
 }
 
 const getQtechMetrics = async (url, username, password) => {
-    // implement get Qtech metrics
+    console.log("RUN getQtechMetrics > " + url );
+    // implement get Beward metrics
+    const BASE_URL = url + '/api';
+    const uptimePayload = {
+        "target": "firmware",
+        "action": "status",
+        "data": {},
+    }
+    const sipStatusPayload = {
+        "target": "sip",
+        "action": "get",
+        "data": {
+            "AccountId": 0
+        },
+    }
+    const instance = axios.create({
+        baseURL: BASE_URL,
+        timeout: 1000,
+        auth: {
+            username: username,
+            password: password
+        }
+    });
+    const parseSipStatus = (data) => {
+        return data?.SipAccount?.AccountStatus === "2" ? 1 : 0
+    }
+    const parseUptime = (data) => {
+        if (!data.UpTime){
+            return 0
+        }
+
+        const upTime = data.UpTime
+        // Регулярное выражение для поиска дней
+        const dayMatch = upTime.match(/day:(\d+)/);
+
+        // Регулярное выражение для поиска часов, минут и секунд, игнорируя лишние пробелы
+        const timeMatch = upTime.match(/(\d+):\s*(\d+):\s*(\d+)/);
+
+        if (dayMatch && timeMatch) {
+            const days = parseInt(dayMatch[1], 10);
+            const hours = parseInt(timeMatch[1].trim(), 10);
+            const minutes = parseInt(timeMatch[2].trim(), 10);
+            const seconds = parseInt(timeMatch[3].trim(), 10);
+
+            return days * 86400 + hours * 3600 + minutes * 60 + seconds;
+        } else {
+            throw new Error(`Invalid UpTime format: ${upTime}`);
+        }
+    }
+
+    try {
+        const [ sysInfoData, sipStatusData,  ] = await Promise.all([
+            instance.post('', JSON.stringify(uptimePayload)).then((res) =>  res.data.data),
+            instance.post('', JSON.stringify(sipStatusPayload)).then((res) =>  res.data.data)
+        ])
+
+        const sipStatus = parseSipStatus(sipStatusData);
+        const uptimeSeconds = parseUptime(sysInfoData);
+
+        return { sipStatus, uptimeSeconds };
+    } catch (err){
+        console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
+        throw new Error('Failed to fetch metrics from intercom');
+    }
 }
 
+/**
+ * get Akuvox intercom metrics
+ * @param url
+ * @param username
+ * @param password
+ * @returns {Promise<{sipStatus: (number), uptimeSeconds: *}>}
+ */
 const getAkuvoxMetrics = async (url, username, password) => {
     console.log("RUN getAkuvoxMetrics > " + url );
     const digestClient = new DigestFetch(username, password);
