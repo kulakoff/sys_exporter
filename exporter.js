@@ -4,6 +4,7 @@ import { Gauge, Registry } from 'prom-client';
 import basicAuth from 'express-basic-auth';
 import { getBewardMetrics, getQtechMetrics, getAkuvoxMetrics } from './metrics'
 import {
+    APP_NAME,
     PORT,
     SERVICE_PREFIX,
     AUTH_ENABLED,
@@ -19,7 +20,7 @@ const app = express();
 
 // Create a global registry for all metrics
 const globalRegistry = new Registry();
-globalRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
+globalRegistry.setDefaultLabels({ app: APP_NAME })
 // Host system metrics, optional
 // collectDefaultMetrics({ register: globalRegistry });
 

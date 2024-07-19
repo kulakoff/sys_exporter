@@ -1,5 +1,6 @@
 import 'dotenv/config'
 
+export const APP_NAME = process.env.APP_NAME
 export const PORT = process.env.PORT;
 export const SERVICE_PREFIX = process.env.SERVICE_PREFIX || 'sys_intercom';
 export const AUTH_ENABLED = process.env.AUTH_ENABLED === 'false';
