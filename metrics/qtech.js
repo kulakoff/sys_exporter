@@ -2,7 +2,6 @@ import axios from "axios";
 
 export const getQtechMetrics = async (url, username, password) => {
     console.log("RUN getQtechMetrics > " + url );
-    // implement get Beward metrics
     const BASE_URL = url + '/api';
     const uptimePayload = {
         "target": "firmware",

@@ -2,7 +2,6 @@ import axios from "axios";
 
 export const getBewardMetrics = async (url, username = 'admin', password) => {
     console.log("RUN getBewardMetrics > " + url );
-    // implement get Beward metrics
     const BASE_URL = url + '/cgi-bin';
     const PATH_SIP_STATUS = '/sip_cgi?action=regstatus&AccountReg';
     const PATH_SYSINFO = '/systeminfo_cgi?action=get';

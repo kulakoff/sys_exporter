@@ -142,5 +142,5 @@ const getMetrics = async ({url, username, password, model}) => {
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Exporter server is running on http://localhost:${PORT}/metrics`);
+    console.log(`Exporter server is running on http://localhost:${PORT}`);
 });
