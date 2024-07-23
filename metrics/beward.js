@@ -29,17 +29,18 @@ export const getBewardMetrics = async (url, username = 'admin', password) => {
      * Extract value of UpTime and convert to seconds
      * @param data
      * @returns {number}
+     * @example "UpTime=20:22:31", "UpTime=11.18:44:44"
      */
     const parseUptimeMatch = (data) => {
-        const match = data.match(/UpTime=(\d+)\.(\d{2}):(\d{2}):(\d{2})/);
-        if (match) {
-            const days = parseInt(match[1], 10);
-            const hours = parseInt(match[2], 10);
-            const minutes = parseInt(match[3], 10);
-            const seconds = parseInt(match[4], 10);
-            return (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds;
+        const match = data.match(/UpTime=(?<days>\d+\.)?(?<hours>\d+\:)(?<minutes>\d+\:)(?<seconds>\d+)/);
+        if (!match || !match.groups) {
+            return 0;
         }
-        return 0;
+        const { days = 0, hours, minutes, seconds } = match.groups;
+        return (parseInt(days, 10) * 24 * 3600)
+            + (parseInt(hours, 10) * 3600)
+            + (parseInt(minutes, 10) * 60)
+            + parseInt(seconds, 10);
     }
 
     try {
