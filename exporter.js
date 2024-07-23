@@ -30,10 +30,10 @@ globalRegistry.setDefaultLabels({ app: APP_NAME })
  * @param isGlobal
  * @returns {{sipStatusGauge: Gauge<string>, uptimeGauge: Gauge<string>}}
  */
-const  createMetrics = (registers, isGlobal = false) => {
+const createMetrics = (registers, isGlobal = false) => {
     const sipStatusGauge = new Gauge({
         name: `${SERVICE_PREFIX}_sip_status`,
-        help: 'SIP status of the intercom. 0 - offline, 1 - online',
+        help: 'SIP status of the intercom. 0 = offline; 1 = online',
         labelNames: ['url'],
         registers: registers,
     });
