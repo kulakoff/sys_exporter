@@ -2,25 +2,25 @@ import 'dotenv/config'
 import express from 'express';
 import { Gauge, Registry } from 'prom-client';
 import basicAuth from 'express-basic-auth';
-import { getBewardMetrics, getQtechMetrics, getAkuvoxMetrics } from './metrics/index.js'
+import { getAkuvoxMetrics, getBewardMetrics, getQtechMetrics } from './metrics/index.js'
 import {
+    AKUVOX,
     APP_NAME,
-    PORT,
-    SERVICE_PREFIX,
     AUTH_ENABLED,
-    AUTH_USER,
     AUTH_PASS,
+    AUTH_USER,
     BEWARD_DKS,
     BEWARD_DS,
+    PORT,
     QTECH,
-    AKUVOX
+    SERVICE_PREFIX
 } from './constants.js'
 
 const app = express();
 
 // Create a global registry for all metrics
 const globalRegistry = new Registry();
-globalRegistry.setDefaultLabels({ app: APP_NAME })
+globalRegistry.setDefaultLabels({app: APP_NAME})
 // Host system metrics, optional
 // collectDefaultMetrics({ register: globalRegistry });
 
@@ -45,7 +45,7 @@ const createMetrics = (registers, isGlobal = false) => {
         registers: registers,
     });
 
-    const metrics = { sipStatusGauge, uptimeGauge }
+    const metrics = {sipStatusGauge, uptimeGauge}
 
     if (!isGlobal) {
         metrics.probeSuccess = new Gauge({
@@ -60,6 +60,9 @@ const createMetrics = (registers, isGlobal = false) => {
     return metrics;
 }
 
+/**
+ * TODO: not used global metrics
+ */
 // Create global metrics
 const {
     sipStatusGauge: globalSipStatusGauge,
@@ -69,11 +72,14 @@ const {
 // auth
 if (AUTH_ENABLED) {
     app.use(basicAuth({
-        users: { [AUTH_USER]: AUTH_PASS },
+        users: {[AUTH_USER]: AUTH_PASS},
         challenge: true,
     }));
 }
 
+/**
+ * TODO: not used
+ */
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', globalRegistry.contentType);
     res.end(await globalRegistry.metrics());
@@ -90,7 +96,7 @@ app.get('/probe', async (req, res) => {
 
     // Create request-specific registry
     const requestRegistry = new Registry();
-    requestRegistry.setDefaultLabels({app: "SmartYard-Server/intercom"})
+    requestRegistry.setDefaultLabels({app: APP_NAME})
 
     // Create request-specific metrics
     const {
@@ -127,7 +133,7 @@ app.get('/probe', async (req, res) => {
 });
 
 const getMetrics = async ({url, username, password, model}) => {
-    switch (model){
+    switch (model) {
         case BEWARD_DS:
         case BEWARD_DKS:
             return await getBewardMetrics(url, username, password);
