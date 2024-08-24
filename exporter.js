@@ -79,7 +79,7 @@ const {
 if (AUTH_ENABLED) {
     console.log("AUTH ENABLED");
     app.use(basicAuth({
-        users: {[AUTH_USER]: AUTH_PASS},
+        users: { [AUTH_USER]: AUTH_PASS },
         challenge: true,
         unauthorizedResponse: (req) => {
             logUnauthorized(req);
