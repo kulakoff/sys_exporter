@@ -16,7 +16,13 @@ import {
     SERVICE_PREFIX
 } from './constants.js'
 
+console.log("const's:")
+
 const app = express();
+
+const logUnauthorized = (req) => {
+    console.log(`Failed auth: ${req.ip}`)
+}
 
 // Create a global registry for all metrics
 const globalRegistry = new Registry();
@@ -45,7 +51,7 @@ const createMetrics = (registers, isGlobal = false) => {
         registers: registers,
     });
 
-    const metrics = {sipStatusGauge, uptimeGauge}
+    const metrics = { sipStatusGauge, uptimeGauge }
 
     if (!isGlobal) {
         metrics.probeSuccess = new Gauge({
@@ -71,9 +77,14 @@ const {
 
 // auth
 if (AUTH_ENABLED) {
+    console.log("AUTH ENABLED");
     app.use(basicAuth({
         users: {[AUTH_USER]: AUTH_PASS},
         challenge: true,
+        unauthorizedResponse: (req) => {
+            logUnauthorized(req);
+            return 'Failed auth';
+        }
     }));
 }
 
@@ -96,7 +107,7 @@ app.get('/probe', async (req, res) => {
 
     // Create request-specific registry
     const requestRegistry = new Registry();
-    requestRegistry.setDefaultLabels({app: APP_NAME})
+    requestRegistry.setDefaultLabels({ app: APP_NAME })
 
     // Create request-specific metrics
     const {
