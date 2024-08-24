@@ -1,9 +1,9 @@
 // device specific metrics
 import { AKUVOX, BEWARD_DKS, BEWARD_DS, QTECH } from "../constants.js";
 
-export { getBewardMetrics } from './beward.js'
-export { getQtechMetrics } from './qtech.js'
-export { getAkuvoxMetrics } from './akuvox.js'
+import { getQtechMetrics } from './qtech.js'
+import { getAkuvoxMetrics } from './akuvox.js'
+import { getBewardMetrics } from './beward.js'
 
 export const getMetrics = async ({url, username, password, model}) => {
     switch (model) {
