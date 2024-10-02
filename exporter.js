@@ -1,5 +1,8 @@
 import 'dotenv/config'
 import express from 'express';
+import gradient from 'gradient-string';
+import figlet from 'figlet';
+import packageData  from "./package.json" with { type: "json" };
 import { Gauge, Registry } from 'prom-client';
 import basicAuth from 'express-basic-auth';
 import { getAkuvoxMetrics, getBewardMetrics, getQtechMetrics } from './metrics/index.js'
@@ -157,7 +160,26 @@ const getMetrics = async ({url, username, password, model}) => {
     }
 }
 
+const showTitle = () => {
+    const title  = "smart-yard prometheus exporter"
+    const version = `version ${packageData.version}`;
+    const fonts = ["Calvin S", "Elite", "Pagga"];
+    console.log(
+        gradient.vice.multiline(
+            [
+                figlet.textSync(title, {
+                    font: fonts[Math.floor(Math.random() * fonts.length)],
+                    verticalLayout: "fitted",
+                    width: 200,
+                }),
+                version,
+            ].join("\n")
+        )
+    );
+}
+
 // Start the server
 app.listen(PORT, () => {
+    showTitle()
     console.log(`Exporter server is running on http://localhost:${PORT}`);
 });
