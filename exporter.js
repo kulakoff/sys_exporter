@@ -1,11 +1,7 @@
 import 'dotenv/config'
 import express from 'express';
-import gradient from 'gradient-string';
-import figlet from 'figlet';
-import packageData  from "./package.json" with { type: "json" };
 import { Gauge, Registry } from 'prom-client';
 import basicAuth from 'express-basic-auth';
-import { getAkuvoxMetrics, getBewardMetrics, getQtechMetrics } from './metrics/index.js'
 import {
     AKUVOX,
     APP_NAME,
@@ -18,8 +14,8 @@ import {
     QTECH,
     SERVICE_PREFIX
 } from './constants.js'
-
-console.log("const's:")
+import { showTitle } from "./utils/showTitle.js";
+import { getMetrics } from  "./utils/metrics.js"
 
 const app = express();
 
@@ -81,6 +77,7 @@ const {
 // auth
 if (AUTH_ENABLED) {
     console.log("AUTH ENABLED");
+    console.log(AUTH_ENABLED, AUTH_USER, AUTH_PASS);
     app.use(basicAuth({
         users: { [AUTH_USER]: AUTH_PASS },
         challenge: true,
@@ -90,9 +87,13 @@ if (AUTH_ENABLED) {
         }
     }));
 }
+// app.use(basicAuth({
+//     users: { 'username': 'secure_password' },
+//     challenge: true,
+// }));
 
 /**
- * TODO: not used
+ * FIXME: not used
  */
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', globalRegistry.contentType);
@@ -145,38 +146,6 @@ app.get('/probe', async (req, res) => {
         requestRegistry.clear();
     }
 });
-
-const getMetrics = async ({url, username, password, model}) => {
-    switch (model) {
-        case BEWARD_DS:
-        case BEWARD_DKS:
-            return await getBewardMetrics(url, username, password);
-        case QTECH:
-            return await getQtechMetrics(url, username, password);
-        case AKUVOX:
-            return await getAkuvoxMetrics(url, username, password);
-        default:
-            throw new Error(`Unsupported model: ${model}`);
-    }
-}
-
-const showTitle = () => {
-    const title  = "smart-yard prometheus exporter"
-    const version = `version ${packageData.version}`;
-    const fonts = ["Calvin S", "Elite", "Pagga"];
-    console.log(
-        gradient.vice.multiline(
-            [
-                figlet.textSync(title, {
-                    font: fonts[Math.floor(Math.random() * fonts.length)],
-                    verticalLayout: "fitted",
-                    width: 200,
-                }),
-                version,
-            ].join("\n")
-        )
-    );
-}
 
 // Start the server
 app.listen(PORT, () => {
