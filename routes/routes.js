@@ -1,8 +1,8 @@
 import express from "express";
 import { Gauge, Registry } from "prom-client";
-import { APP_NAME, AUTH_ENABLED, AUTH_PASS, AUTH_USER, SERVICE_PREFIX } from "./constants.js";
-import { getMetrics } from "./utils/metrics.js";
-import basicAuth from "express-basic-auth";
+import { APP_NAME, AUTH_ENABLED, AUTH_PASS, AUTH_USER, SERVICE_PREFIX } from "../constants.js";
+import { getMetrics } from "../utils/metrics.js";
+import basicAuthMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 // Create a global registry for all metrics
@@ -46,22 +46,12 @@ const {
     uptimeGauge: globalUptimeGauge,
 } = createMetrics([globalRegistry], true);
 
-const logUnauthorized = (req) => {
-    console.log(`Failed auth: ${req.ip}`)
-}
 
 // auth
 if (AUTH_ENABLED === true) {
     console.log("AUTH ENABLED");
     console.log(AUTH_ENABLED, AUTH_USER, AUTH_PASS);
-    router.use(basicAuth({
-        users: {[AUTH_USER]: AUTH_PASS},
-        challenge: true,
-        unauthorizedResponse: (req) => {
-            logUnauthorized(req);
-            return 'Failed auth';
-        }
-    }));
+    router.use(basicAuthMiddleware);
 }
 
 router.get('/metrics', async (req, res) => {
