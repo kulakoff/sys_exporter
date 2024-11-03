@@ -24,7 +24,7 @@ const createMetrics = (registers, isGlobal = false) => {
         registers: registers,
     });
 
-    const metrics = { sipStatusGauge, uptimeGauge }
+    const metrics = {sipStatusGauge, uptimeGauge}
 
     if (!isGlobal) {
         metrics.probeSuccess = new Gauge({
@@ -38,26 +38,24 @@ const createMetrics = (registers, isGlobal = false) => {
 
     return metrics;
 }
-/**
- * TODO: not used global metrics
- */
+
+// FIXME: not used global metrics
 // Create global metrics
 const {
     sipStatusGauge: globalSipStatusGauge,
     uptimeGauge: globalUptimeGauge,
 } = createMetrics([globalRegistry], true);
 
-
 const logUnauthorized = (req) => {
     console.log(`Failed auth: ${req.ip}`)
 }
 
 // auth
-if (AUTH_ENABLED) {
+if (AUTH_ENABLED === true) {
     console.log("AUTH ENABLED");
     console.log(AUTH_ENABLED, AUTH_USER, AUTH_PASS);
     router.use(basicAuth({
-        users: { [AUTH_USER]: AUTH_PASS },
+        users: {[AUTH_USER]: AUTH_PASS},
         challenge: true,
         unauthorizedResponse: (req) => {
             logUnauthorized(req);
@@ -71,17 +69,15 @@ router.get('/metrics', async (req, res) => {
     res.end(await globalRegistry.metrics());
 });
 router.get('/probe', async (req, res) => {
-    const { url, username, password, model } = req.query;
-
+    const {url, username, password, model} = req.query;
     if (!url || !username || !password || !model) {
-        return res.status(400).send('Missing required query parameters: url, username, password, model');
+        return res.status(400).send('Missing required query parameters: url, username, password or model');
     }
-
     console.log("Probe req > " + url);
 
     // Create request-specific registry
     const requestRegistry = new Registry();
-    requestRegistry.setDefaultLabels({ app: APP_NAME })
+    requestRegistry.setDefaultLabels({app: APP_NAME})
 
     // Create request-specific metrics
     const {
@@ -91,29 +87,27 @@ router.get('/probe', async (req, res) => {
     } = createMetrics([requestRegistry]);
 
     try {
-        const { sipStatus, uptimeSeconds }  = await getMetrics({url, username, password, model});
+        // get device status data
+        const { sipStatus, uptimeSeconds } = await getMetrics({url, username, password, model});
 
         // Update metrics per request-specific
-        requestSipStatusGauge.set({ url }, sipStatus);
-        requestUptimeGauge.set({ url }, uptimeSeconds);
-        requestProbeSuccessGauge.set({ url },1);
+        requestSipStatusGauge.set({url}, sipStatus);
+        requestUptimeGauge.set({url}, uptimeSeconds);
+        requestProbeSuccessGauge.set({url}, 1);
 
         // TODO: not usage global registry
         //  update  global registry
-        globalSipStatusGauge.set({ url }, sipStatus);
-        globalUptimeGauge.set({ url }, uptimeSeconds);
+        globalSipStatusGauge.set({url}, sipStatus);
+        globalUptimeGauge.set({url}, uptimeSeconds);
 
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());
-
         requestRegistry.clear();
     } catch (error) {
         console.error('Failed to update metrics:', error.message);
-        requestProbeSuccessGauge.set({ url }, 0);
-
+        requestProbeSuccessGauge.set({url}, 0);
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());
-
         requestRegistry.clear();
     }
 });
