@@ -12,7 +12,7 @@ if (AUTH_ENABLED === true) {
     router.use(basicAuthMiddleware);
 }
 
-router.use('/metrics', metricsRoute);
-router.use('/probe', probeRoute);
+router.use('/metrics', metricsRoute); //global metrics route
+router.use('/probe', probeRoute); // Probe request route
 
 export default router;
