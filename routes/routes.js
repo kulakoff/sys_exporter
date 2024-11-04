@@ -2,50 +2,19 @@ import express from "express";
 import { Gauge, Registry } from "prom-client";
 import { APP_NAME, AUTH_ENABLED, AUTH_PASS, AUTH_USER, SERVICE_PREFIX } from "../constants.js";
 import { getMetrics } from "../utils/metrics.js";
+import {createMetrics} from "../metrics/metricsFactory.js"
 import basicAuthMiddleware from "../middleware/auth.js";
+import { globalRegistry } from "../metrics/registry.js";
+import metricsRoute from "./metrics.js"
 
 const router = express.Router();
-// Create a global registry for all metrics
-const globalRegistry = new Registry();
-globalRegistry.setDefaultLabels({app: APP_NAME})
-
-const createMetrics = (registers, isGlobal = false) => {
-    const sipStatusGauge = new Gauge({
-        name: `${SERVICE_PREFIX}_sip_status`,
-        help: 'SIP status of the intercom. 0 = offline; 1 = online',
-        labelNames: ['url'],
-        registers: registers,
-    });
-
-    const uptimeGauge = new Gauge({
-        name: `${SERVICE_PREFIX}_uptime_seconds`,
-        help: 'Uptime of the intercom in seconds',
-        labelNames: ['url'],
-        registers: registers,
-    });
-
-    const metrics = {sipStatusGauge, uptimeGauge}
-
-    if (!isGlobal) {
-        metrics.probeSuccess = new Gauge({
-            name: `probe_success`,
-            // name: `${SERVICE_PREFIX}_probe_success`,
-            help: 'Displays whether or not the probe was a success',
-            labelNames: ['url'],
-            registers: registers,
-        })
-    }
-
-    return metrics;
-}
 
 // FIXME: not used global metrics
 // Create global metrics
-const {
-    sipStatusGauge: globalSipStatusGauge,
-    uptimeGauge: globalUptimeGauge,
-} = createMetrics([globalRegistry], true);
-
+// const {
+//     sipStatusGauge: globalSipStatusGauge,
+//     uptimeGauge: globalUptimeGauge,
+// } = createMetrics([globalRegistry], true);
 
 // auth
 if (AUTH_ENABLED === true) {
@@ -53,11 +22,10 @@ if (AUTH_ENABLED === true) {
     console.log(AUTH_ENABLED, AUTH_USER, AUTH_PASS);
     router.use(basicAuthMiddleware);
 }
-
-router.get('/metrics', async (req, res) => {
-    res.set('Content-Type', globalRegistry.contentType);
-    res.end(await globalRegistry.metrics());
-});
+router.get("/123", (req, res)=>{
+    res.end("123")
+})
+router.use('/metrics', metricsRoute);
 router.get('/probe', async (req, res) => {
     const {url, username, password, model} = req.query;
     if (!url || !username || !password || !model) {
