@@ -5,7 +5,8 @@
   "main": "exporter.js",
   "type": "module",
   "scripts": {
-    "start": "node exporter.js"
+    "start": "node exporter.js",
+    "dev": "npx nodemon exporter.js"
   },
   "keywords": [],
   "author": "",
