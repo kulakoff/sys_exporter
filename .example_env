@@ -1,6 +1,0 @@
-APP_NAME=SmartYard-Server/intercom
-PORT=9191
-SERVICE_PREFIX=sys_intercom
-AUTH_ENABLED=true
-AUTH_USER=username
-AUTH_PASS=password_secure

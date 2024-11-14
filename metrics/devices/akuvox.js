@@ -8,7 +8,7 @@ import DigestFetch from "digest-fetch";
  * @returns {Promise<{sipStatus: (number), uptimeSeconds: *}>}
  */
 export const getAkuvoxMetrics = async (url, username, password) => {
-    console.log("RUN getAkuvoxMetrics > " + url);
+    console.log(`${new Date().toLocaleString("RU")} | getBewardMetrics: ${url}`);
     const digestClient = new DigestFetch(username, password);
     const BASE_URL = url + '/api';
     const statusPayload = {
@@ -74,7 +74,7 @@ export const getAkuvoxMetrics = async (url, username, password) => {
 
         return { sipStatus, uptimeSeconds };
     } catch (err) {
-        console.error(`Error fetching metrics from device ${url}: ${err.message}`);
+        console.error(`${new Date().toLocaleString("RU")} | Error fetching metrics from device ${url}: ${err.message}`);
         throw new Error('Failed to fetch metrics from intercom');
     }
 };

@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
     if (!url || !username || !password || !model) {
         return res.status(400).send('Missing required query parameters: url, username, password or model');
     }
-    console.log("Probe req > " + url);
+    console.log(`${new Date().toLocaleString("RU")} | probe request url: ${url}`);
 
     const requestRegistry = new Registry();
     requestRegistry.setDefaultLabels({app: APP_NAME})
@@ -43,7 +43,7 @@ router.get("/", async (req, res) => {
         res.send(await requestRegistry.metrics());
         requestRegistry.clear();
     } catch (error) {
-        console.error('Failed to update metrics:', error.message);
+        console.error(`${new Date().toLocaleString("RU")} | Failed to update metrics:`, error.message);
         requestProbeSuccessGauge.set({url}, 0);
         res.set('Content-Type', requestRegistry.contentType);
         res.send(await requestRegistry.metrics());

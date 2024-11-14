@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const getBewardMetrics = async (url, username = 'admin', password) => {
-    console.log("RUN getBewardMetrics > " + url );
+    console.log(`${new Date().toLocaleString("RU")} | getBewardMetrics: ${url}`);
     const BASE_URL = url + '/cgi-bin';
     const PATH_SIP_STATUS = '/sip_cgi?action=regstatus&AccountReg';
     const PATH_SYSINFO = '/systeminfo_cgi?action=get';
@@ -54,7 +54,7 @@ export const getBewardMetrics = async (url, username = 'admin', password) => {
 
         return { sipStatus, uptimeSeconds };
     } catch (err){
-        console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
+        console.error(`${new Date().toLocaleString("RU")} | Error fetching metrics from device ${url}:  ${err.message}`);
         throw new Error('Failed to fetch metrics from intercom');
     }
 }

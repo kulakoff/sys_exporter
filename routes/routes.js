@@ -8,7 +8,7 @@ const router = express.Router();
 
 // auth
 if (AUTH_ENABLED === true) {
-    console.log("AUTH ENABLED");
+    console.log(`${new Date().toLocaleString("RU")} | Auth enabled`);
     router.use(basicAuthMiddleware);
 }
 
