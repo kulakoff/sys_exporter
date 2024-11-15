@@ -6,7 +6,7 @@ import routes from "./routes/routes.js";
 
 const app = express();
 app.use("/", routes)
-app.listen(APP_PORT, APP_HOST, () => {
+app.listen(APP_PORT, () => {
     showTitle()
     console.log(`Exporter server is running on http://${APP_HOST}:${APP_PORT}`);
 });

@@ -1,4 +1,4 @@
-import packageData from "../package.json" with { type: "json" };
+import packageData from "../../package.json" with { type: "json" };
 import gradient from "gradient-string";
 import figlet from "figlet";
 

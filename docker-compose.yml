@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  sys_exporter:
+    container_name: sys_exporter
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+      target: main
+    volumes:
+      - .env:/home/node/app/.env
+    ports:
+      - "${APP_PORT}:${APP_PORT}/tcp"
+    command: npm run start
+#    networks:
+#      default:
+#        ipv4_address: "${RBT_EVENT_SERVER_NETWORK_ADDRESS}"
