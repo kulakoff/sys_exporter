@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
     if (!url || !username || !password || !model) {
         return res.status(400).send('Missing required query parameters: url, username, password or model');
     }
-    console.log(`${new Date().toLocaleString("RU")} | probe request url: ${url}`);
+    console.log(`${new Date().toLocaleString("RU")} | ${req.ip} | probe request url: ${url}`);
 
     const requestRegistry = new Registry();
     requestRegistry.setDefaultLabels({app: APP_NAME})

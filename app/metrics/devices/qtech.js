@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const getQtechMetrics = async (url, username, password) => {
-    console.log("RUN getQtechMetrics > " + url );
+    console.log(`${new Date().toLocaleString("RU")} | getQtechMetrics: ${url}`);
     const BASE_URL = url + '/api';
     const uptimePayload = {
         "target": "firmware",
@@ -61,7 +61,7 @@ export const getQtechMetrics = async (url, username, password) => {
 
         return { sipStatus, uptimeSeconds };
     } catch (err){
-        console.error(`Error fetching metrics from device ${url}:  ${err.message}`);
+        console.error(`${new Date().toLocaleString("RU")} | Error fetching metrics from device ${url}:  ${err.message}`);
         throw new Error('Failed to fetch metrics from intercom');
     }
 }
