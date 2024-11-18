@@ -3,6 +3,7 @@ version: '3.9'
 services:
   sys_exporter:
     container_name: sys_exporter
+    hostname: rbt_sys_exporter
     build:
       context: .
       dockerfile: docker/node/Dockerfile
@@ -16,7 +17,7 @@ services:
     networks:
       default:
         ipv4_address: 172.30.0.2
-
+      shared-network-dev:
 
 networks:
   default:
@@ -27,3 +28,6 @@ networks:
       config:
         - subnet: 172.30.0.0/24
           gateway: 172.30.0.1
+
+  shared-network-dev:
+    external: true
