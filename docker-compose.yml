@@ -11,9 +11,9 @@ services:
     volumes:
       - .env:/home/node/app/.env
     ports:
-      - "${APP_PORT}:${APP_PORT}/tcp"
-#      - "${APP_PORT}/tcp"
-    command: npm run start
+#      - "${APP_PORT}:${APP_PORT}/tcp"
+      - "${APP_PORT}/tcp"
+    command: npm start
     networks:
       default:
         ipv4_address: 172.30.0.2

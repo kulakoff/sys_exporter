@@ -1,15 +1,16 @@
 import { Gauge } from 'prom-client';
+import { SERVICE_PREFIX } from '../constants.js'
 
 export const createMetrics = (registers, isGlobal = false) => {
     const sipStatusGauge = new Gauge({
-        name: 'sip_status',
+        name: `${SERVICE_PREFIX}_sip_status`,
         help: 'SIP status of the intercom. 0 = offline; 1 = online',
         labelNames: ['url'],
         registers: registers,
     });
 
     const uptimeGauge = new Gauge({
-        name: 'uptime_seconds',
+        name: `${SERVICE_PREFIX}_uptime_seconds`,
         help: 'Uptime of the intercom in seconds',
         labelNames: ['url'],
         registers: registers,
